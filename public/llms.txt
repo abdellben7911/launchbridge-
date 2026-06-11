@@ -1,0 +1,18 @@
+# LaunchBridge
+
+> LaunchBridge helps non-US founders form a US LLC, get an EIN, and open business banking — fully online, in English, French, or Arabic.
+
+## Pages
+
+- [Home](/): What LaunchBridge does and why founders choose it.
+- [Services](/services): LLC formation, EIN, registered agent, banking setup.
+- [Pricing](/pricing): Plans and what's included.
+- [Countries](/countries): Who we serve and country-specific guidance.
+- [Academy](/academy): Guides on forming and running a US LLC from abroad.
+- [About](/about): The team and mission behind LaunchBridge.
+- [Contact](/contact): How to reach support and sales.
+
+## Optional
+
+- [Start your LLC](/start): Begin the formation flow.
+- [Choose a method](/method): Pick a formation package.
