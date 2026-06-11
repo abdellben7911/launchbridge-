@@ -30,6 +30,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-"bun.lock" 
-"bun.lock" 
-"package-lock.json" 
+package-lock.json
