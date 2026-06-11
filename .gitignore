@@ -32,3 +32,4 @@ dist-ssr
 *.sw?
 "bun.lock" 
 "bun.lock" 
+"package-lock.json" 
