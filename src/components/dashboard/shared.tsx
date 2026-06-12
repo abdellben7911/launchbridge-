@@ -1,11 +1,13 @@
 import { cn } from "@/lib/utils";
 import { useLang } from "@/i18n/LanguageProvider";
-import stripeAsset from "@/assets/logos/stripe.svg.asset.json";
-import shopifyAsset from "@/assets/logos/shopify.svg.asset.json";
-import wiseAsset from "@/assets/logos/wise.svg.asset.json";
-import payoneerAsset from "@/assets/logos/payoneer.svg.asset.json";
-import paypalAsset from "@/assets/logos/paypal.svg.asset.json";
-import mercuryAsset from "@/assets/logos/mercury.png.asset.json";
+const GATEWAY_LOGOS: Record<string, string> = {
+  stripe: "https://cdn.simpleicons.org/stripe/635BFF",
+  shopify: "https://cdn.simpleicons.org/shopify/96BF48",
+  wise: "https://cdn.simpleicons.org/wise/9FE870",
+  payoneer: "https://cdn.simpleicons.org/payoneer/FF4800",
+  paypal: "https://cdn.simpleicons.org/paypal/003087",
+  mercury: "https://cdn.simpleicons.org/mercury/000000",
+};
 
 export type GatewayStatus =
   | "completed"
@@ -151,14 +153,7 @@ export type GatewayKey =
   | "etsy"
   | "ebay";
 
-const LOGO_MAP: Partial<Record<GatewayKey, string>> = {
-  stripe: stripeAsset.url,
-  shopify: shopifyAsset.url,
-  wise: wiseAsset.url,
-  payoneer: payoneerAsset.url,
-  paypal: paypalAsset.url,
-  mercury: mercuryAsset.url,
-};
+const LOGO_MAP: Partial<Record<GatewayKey, string>> = GATEWAY_LOGOS as Partial<Record<GatewayKey, string>>;
 
 const INITIAL_TONES: Record<GatewayKey, string> = {
   stripe: "bg-[#635bff] text-white",

@@ -1,18 +1,6 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import { Reveal } from "@/components/ui/Reveal";
 
-import stripeLogo from "@/assets/logos/stripe.svg.asset.json";
-import paypalLogo from "@/assets/logos/paypal.svg.asset.json";
-import shopifyLogo from "@/assets/logos/shopify.svg.asset.json";
-import wiseLogo from "@/assets/logos/wise.svg.asset.json";
-import mercuryLogo from "@/assets/logos/mercury.png.asset.json";
-import payoneerLogo from "@/assets/logos/payoneer.svg.asset.json";
-import metaLogo from "@/assets/logos/meta.svg.asset.json";
-import googleAdsLogo from "@/assets/logos/google-ads.svg.asset.json";
-import tiktokLogo from "@/assets/logos/tiktok.svg.asset.json";
-import snapchatLogo from "@/assets/logos/snapchat.svg.asset.json";
-import wordpressLogo from "@/assets/logos/wordpress.svg.asset.json";
-
 type Brand = {
   name: string;
   src: string;
@@ -20,17 +8,17 @@ type Brand = {
 };
 
 const BRANDS: Brand[] = [
-  { name: "Stripe", src: stripeLogo.url },
-  { name: "PayPal", src: paypalLogo.url, suffix: "Business" },
-  { name: "Shopify", src: shopifyLogo.url, suffix: "Payments" },
-  { name: "Wise", src: wiseLogo.url },
-  { name: "Mercury", src: mercuryLogo.url },
-  { name: "Payoneer", src: payoneerLogo.url },
-  { name: "Meta", src: metaLogo.url, suffix: "Ads" },
-  { name: "Google Ads", src: googleAdsLogo.url },
-  { name: "TikTok", src: tiktokLogo.url, suffix: "Ads" },
-  { name: "Snapchat", src: snapchatLogo.url, suffix: "Ads" },
-  { name: "WordPress", src: wordpressLogo.url },
+  { name: "Stripe", src: "https://cdn.simpleicons.org/stripe/635BFF" },
+  { name: "PayPal", src: "https://cdn.simpleicons.org/paypal/003087", suffix: "Business" },
+  { name: "Shopify", src: "https://cdn.simpleicons.org/shopify/96BF48", suffix: "Payments" },
+  { name: "Wise", src: "https://cdn.simpleicons.org/wise/9FE870" },
+  { name: "Mercury", src: "https://cdn.simpleicons.org/mercury/000000" },
+  { name: "Payoneer", src: "https://cdn.simpleicons.org/payoneer/FF4800" },
+  { name: "Meta", src: "https://cdn.simpleicons.org/meta/0082FB", suffix: "Ads" },
+  { name: "Google Ads", src: "https://cdn.simpleicons.org/googleads/4285F4" },
+  { name: "TikTok", src: "https://cdn.simpleicons.org/tiktok/000000", suffix: "Ads" },
+  { name: "Snapchat", src: "https://cdn.simpleicons.org/snapchat/FFFC00", suffix: "Ads" },
+  { name: "WordPress", src: "https://cdn.simpleicons.org/wordpress/21759B" },
 ];
 
 const STEP_PX = 160;
