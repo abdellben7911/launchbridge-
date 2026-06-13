@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ServicesBento } from "@/components/sections/ServicesBento";
 import { MethodTimeline } from "@/components/sections/MethodTimeline";
 import { CtaBanner } from "@/components/sections/CtaBanner";
+import { BookCallBanner } from "@/components/sections/BookCallBanner";
 import { PageHero } from "@/components/sections/PageHero";
 
 export const Route = createFileRoute("/services")({
@@ -24,6 +25,7 @@ function ServicesPage() {
       <PageHero tagKey="services.tag" titleKey="services.title" subtitleKey="services.subtitle" />
       <ServicesBento withHeading={false} />
       <MethodTimeline withHeading={false} />
+      <BookCallBanner />
       <CtaBanner />
     </>
   );

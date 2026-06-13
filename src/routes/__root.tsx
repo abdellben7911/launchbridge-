@@ -40,16 +40,31 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  let tr = (k: string) => k;
-  try { tr = useLang().t; } catch { /* before provider */ }
+  // This component renders OUTSIDE the provider tree (it replaces RootComponent),
+  // so useLang() would throw. We use hardcoded English strings as the safe fallback.
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div style={{ fontFamily: "system-ui, sans-serif" }} className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold text-foreground">{tr("err.title")}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{tr("err.body")}</p>
+        <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-rose-100 text-rose-600">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <h1 className="text-xl font-semibold text-foreground">Something went wrong</h1>
+        <p className="mt-2 text-sm text-muted-foreground">An unexpected error occurred. Please try again or return to the home page.</p>
+        {error?.message && (
+          <p className="mt-3 rounded-lg bg-rose-50 px-4 py-2 text-xs text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+            {error.message}
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button onClick={() => { router.invalidate(); reset(); }} className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">{tr("err.try_again")}</button>
-          <a href="/" className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent">{tr("err.go_home")}</a>
+          <button
+            onClick={() => { router.invalidate(); reset(); }}
+            className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Try again
+          </button>
+          <a href="/" className="rounded-full border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent">
+            Go home
+          </a>
         </div>
       </div>
     </div>
@@ -69,6 +84,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "icon", href: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -83,17 +101,58 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@graph": [
             {
               "@type": "Organization",
-              "@id": "https://launchbridgepro.lovable.app/#organization",
+              "@id": "https://launchbridgepro.com/#organization",
               name: "LaunchBridge",
-              url: "https://launchbridgepro.lovable.app",
-              description: "360° Agency & Academy for MEA founders — US LLC formation, conversion web, paid acquisition, and operator academy.",
+              url: "https://launchbridgepro.com",
+              logo: {
+                "@type": "ImageObject",
+                url: "https://launchbridgepro.com/favicon.svg",
+                width: 100,
+                height: 100,
+              },
+              description: "LaunchBridge helps MEA founders form US LLCs, access Stripe and PayPal, and open US bank accounts — fully remote, in as little as 2 days.",
+              areaServed: ["MA", "DZ", "TN", "EG", "SN", "CI", "SN"],
+              knowsAbout: ["US LLC formation", "Stripe for non-residents", "PayPal Business", "Mercury Bank", "Wyoming LLC", "Montana LLC", "New Mexico LLC"],
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "customer support",
+                availableLanguage: ["English", "French", "Arabic"],
+              },
+              sameAs: [
+                "https://www.instagram.com/launchbridgepro",
+              ],
             },
             {
               "@type": "WebSite",
-              "@id": "https://launchbridgepro.lovable.app/#website",
-              url: "https://launchbridgepro.lovable.app",
+              "@id": "https://launchbridgepro.com/#website",
+              url: "https://launchbridgepro.com",
               name: "LaunchBridge",
-              publisher: { "@id": "https://launchbridgepro.lovable.app/#organization" },
+              description: "US LLC formation and payment gateway access for MEA founders",
+              publisher: { "@id": "https://launchbridgepro.com/#organization" },
+              potentialAction: {
+                "@type": "SearchAction",
+                target: {
+                  "@type": "EntryPoint",
+                  urlTemplate: "https://launchbridgepro.com/blog?q={search_term_string}",
+                },
+                "query-input": "required name=search_term_string",
+              },
+            },
+            {
+              "@type": "Service",
+              "@id": "https://launchbridgepro.com/#llc-service",
+              name: "US LLC Formation for Non-Residents",
+              provider: { "@id": "https://launchbridgepro.com/#organization" },
+              description: "Complete US LLC formation service for non-US residents including EIN, registered agent, US phone number, and payment gateway onboarding.",
+              areaServed: "Worldwide",
+              serviceType: "Business Formation",
+              offers: {
+                "@type": "AggregateOffer",
+                priceCurrency: "MAD",
+                lowPrice: "1299",
+                highPrice: "2999",
+                offerCount: "9",
+              },
             },
           ],
         }),
@@ -129,6 +188,8 @@ function RootComponent() {
     path.startsWith("/admin") ||
     path.startsWith("/start") ||
     path === "/login" ||
+    path === "/signup" ||
+    path === "/verify-email" ||
     path === "/forgot-password" ||
     path === "/reset-password";
 

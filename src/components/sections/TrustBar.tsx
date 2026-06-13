@@ -8,17 +8,17 @@ type Brand = {
 };
 
 const BRANDS: Brand[] = [
-  { name: "Stripe", src: "https://cdn.simpleicons.org/stripe/635BFF" },
-  { name: "PayPal", src: "https://cdn.simpleicons.org/paypal/003087", suffix: "Business" },
-  { name: "Shopify", src: "https://cdn.simpleicons.org/shopify/96BF48", suffix: "Payments" },
-  { name: "Wise", src: "https://cdn.simpleicons.org/wise/9FE870" },
-  { name: "Mercury", src: "https://cdn.simpleicons.org/mercury/000000" },
-  { name: "Payoneer", src: "https://cdn.simpleicons.org/payoneer/FF4800" },
-  { name: "Meta", src: "https://cdn.simpleicons.org/meta/0082FB", suffix: "Ads" },
-  { name: "Google Ads", src: "https://cdn.simpleicons.org/googleads/4285F4" },
-  { name: "TikTok", src: "https://cdn.simpleicons.org/tiktok/000000", suffix: "Ads" },
-  { name: "Snapchat", src: "https://cdn.simpleicons.org/snapchat/FFFC00", suffix: "Ads" },
-  { name: "WordPress", src: "https://cdn.simpleicons.org/wordpress/21759B" },
+  { name: "Stripe", src: "/logos/stripe.svg" },
+  { name: "PayPal", src: "/logos/paypal.svg", suffix: "Business" },
+  { name: "Shopify", src: "/logos/shopify.svg", suffix: "Payments" },
+  { name: "Wise", src: "/logos/wise.svg" },
+  { name: "Mercury", src: "/logos/mercury.svg" },
+  { name: "Payoneer", src: "/logos/payoneer.svg" },
+  { name: "Meta", src: "/logos/meta.svg", suffix: "Ads" },
+  { name: "Google Ads", src: "/logos/googleads.svg" },
+  { name: "TikTok", src: "/logos/tiktok.svg", suffix: "Ads" },
+  { name: "Snapchat", src: "/logos/snapchat.svg", suffix: "Ads" },
+  { name: "WordPress", src: "/logos/wordpress.svg" },
 ];
 
 const STEP_PX = 160;

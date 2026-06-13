@@ -1,14 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Phone, Copy } from "lucide-react";
 import { StatusPill, Card } from "@/components/dashboard/shared";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useDashboardDataCtx } from "@/hooks/DashboardDataContext";
 
 export const Route = createFileRoute("/_authenticated/dashboard/phone")({
   component: PhonePage,
 });
 
 function PhonePage() {
-  const data = useDashboardData();
+  const data = useDashboardDataCtx();
   return (
     <div className="mx-auto max-w-4xl">
       <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-text-3">

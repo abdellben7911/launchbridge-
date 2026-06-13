@@ -5,7 +5,7 @@ import {
   StatusPill, GatewayLogo, Card,
   type GatewayKey, type GatewayStatus,
 } from "@/components/dashboard/shared";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useDashboardDataCtx } from "@/hooks/DashboardDataContext";
 
 export const Route = createFileRoute("/_authenticated/dashboard/gateways")({
   component: GatewaysPage,
@@ -75,7 +75,7 @@ const DETAIL_COPY: Partial<Record<GatewayKey, { needs: string; steps: { state: "
 };
 
 function GatewaysPage() {
-  const data = useDashboardData();
+  const data = useDashboardDataCtx();
   const [openGateway, setOpenGateway] = useState<Gateway | null>(null);
 
   return (

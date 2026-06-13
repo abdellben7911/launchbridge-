@@ -8,6 +8,7 @@ import type { GatewayKey, GatewayStatus } from "@/components/dashboard/shared";
 export type OrderRow = {
   id: string;
   order_number: string | null;
+  service_id: string | null;
   status: string;
   payment_status: string | null;
   business_name: string | null;
@@ -67,6 +68,16 @@ export type DocRow = {
   created_at: string;
 };
 
+const FEATURE_TO_GW: Record<string, string> = {
+  stripe_2: "stripe",
+  paypal_business: "paypal",
+  wise_business: "wise",
+  mercury_account: "mercury",
+  payoneer_business: "payoneer",
+  shopify_payment: "shopify",
+};
+const ULTIMATE_GW = ["stripe", "paypal", "wise", "payoneer", "shopify"];
+
 export function useDashboardData() {
   const { user } = useAuth();
   const { activeId } = useActiveWorkspace();
@@ -80,7 +91,7 @@ export function useDashboardData() {
       let query = supabase
         .from("orders")
         .select(
-          "id, order_number, status, payment_status, business_name, business_type, us_state, industry, submitted_at, filed_at, ein_received_at, banking_done_at, completed_at, total_usd, currency_paid, intake, preferred_channel, created_at",
+          "id, order_number, service_id, status, payment_status, business_name, business_type, us_state, industry, submitted_at, filed_at, ein_received_at, banking_done_at, completed_at, total_usd, currency_paid, intake, preferred_channel, created_at",
         )
         .eq("client_id", uid!);
       if (activeId) query = query.eq("id", activeId);
@@ -92,6 +103,27 @@ export function useDashboardData() {
   });
 
   const orderId = orderQ.data?.id;
+  const serviceId = orderQ.data?.service_id as string | undefined;
+
+  // Fallback: fetch service features so we know which gateways are included
+  // even for orders submitted before we stored addons in the intake
+  const serviceQ = useQuery({
+    queryKey: ["service-features", serviceId],
+    enabled: !!serviceId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("services")
+        .select("features")
+        .eq("id", serviceId!)
+        .maybeSingle();
+      if (error) throw error;
+      const features: { k: string }[] = (data?.features as { k: string }[] | null) ?? [];
+      const hasAllUltimate = features.some((f) => f.k === "all_ultimate");
+      const direct = features.map((f) => FEATURE_TO_GW[f.k]).filter(Boolean);
+      return hasAllUltimate ? [...new Set([...ULTIMATE_GW, ...direct])] : direct;
+    },
+    staleTime: Infinity, // service features never change
+  });
 
   const timelineQ = useQuery({
     queryKey: ["my-order-timeline", orderId],
@@ -147,11 +179,10 @@ export function useDashboardData() {
     };
   }, [orderId, uid, qc]);
 
-  const view = useMemo(() => buildView(orderQ.data, timelineQ.data, docsQ.data), [
-    orderQ.data,
-    timelineQ.data,
-    docsQ.data,
-  ]);
+  const view = useMemo(
+    () => buildView(orderQ.data, timelineQ.data, docsQ.data, serviceQ.data),
+    [orderQ.data, timelineQ.data, docsQ.data, serviceQ.data],
+  );
 
   return {
     loading: orderQ.isLoading,
@@ -162,7 +193,12 @@ export function useDashboardData() {
   };
 }
 
-function buildView(order: OrderRow | null | undefined, timeline?: TimelineRow[], docs?: DocRow[]) {
+function buildView(
+  order: OrderRow | null | undefined,
+  timeline?: TimelineRow[],
+  docs?: DocRow[],
+  serviceGateways?: string[],
+) {
   if (!order) {
     const PRIMARY: GatewayKey[] = ["stripe", "shopify", "wise", "payoneer", "paypal"];
     const BANKING: GatewayKey[] = ["airwallex", "mercury", "relay", "etsy", "ebay"];
@@ -236,7 +272,12 @@ function buildView(order: OrderRow | null | undefined, timeline?: TimelineRow[],
   const PRIMARY: GatewayKey[] = ["stripe", "shopify", "wise", "payoneer", "paypal"];
   const BANKING: GatewayKey[] = ["airwallex", "mercury", "relay", "etsy", "ebay"];
   const gw = intake.services?.gateways ?? {};
-  const includedSet = new Set(intake.addons?.gateways ?? PRIMARY);
+
+  // Priority: admin-set per-gateway status > intake.addons.gateways > service feature lookup > empty
+  const intakeGateways = intake.addons?.gateways as string[] | undefined;
+  const resolvedIncluded = intakeGateways ?? serviceGateways ?? [];
+  const includedSet = new Set(resolvedIncluded);
+
   const mapGW = (key: GatewayKey, name: string) => ({
     key,
     name,

@@ -1,25 +1,63 @@
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouter, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { useLang } from "@/i18n/LanguageProvider";
 import { useTheme } from "@/theme/ThemeProvider";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import {
   LayoutGrid, FileText, Phone, Globe, CreditCard, Headphones,
   LogOut, Shield, Sun, Moon, ChevronDown, Banknote, BarChart3,
   CalendarCheck2, Store, GraduationCap, Bell, Settings, Menu, X,
 } from "lucide-react";
 import { useState } from "react";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { DashboardDataProvider, useDashboardDataCtx } from "@/hooks/DashboardDataContext";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
 
+function DashboardErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  let t: (k: string) => string = (k) => k;
+  try { t = useLang().t; } catch { /* fallback */ }
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
+      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400">
+        <AlertTriangle className="h-7 w-7" />
+      </div>
+      <h2 className="mt-5 text-xl font-bold text-foreground">Something went wrong</h2>
+      <p className="mt-2 max-w-sm text-sm text-text-2">
+        {error?.message || "An unexpected error occurred loading this page."}
+      </p>
+      <div className="mt-6 flex gap-3">
+        <button
+          onClick={() => { router.invalidate(); reset(); }}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+        >
+          <RefreshCw className="h-4 w-4" /> Try again
+        </button>
+        <a href="/dashboard" className="inline-flex items-center rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-text-2 hover:bg-accent">
+          Back to dashboard
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardLayout,
+  errorComponent: DashboardErrorComponent,
 });
 
 type NavItem = { to: string; labelKey: string; icon: typeof LayoutGrid; badge?: number };
 type NavGroup = { labelKey: string; items: NavItem[] };
 
 function DashboardLayout() {
+  return (
+    <DashboardDataProvider>
+      <DashboardLayoutInner />
+    </DashboardDataProvider>
+  );
+}
+
+function DashboardLayoutInner() {
   const { profile, signOut, isStaff, user } = useAuth();
   const navigate = useNavigate();
   const { lang, setLang, t } = useLang();
@@ -27,7 +65,7 @@ function DashboardLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const fullName = profile?.full_name ?? "Michael Carter";
   const initials = fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
-  const data = useDashboardData();
+  const data = useDashboardDataCtx();
   const companyName = data.hasOrder ? data.company.legalEntity : t("sidebar.no_company");
   const actionRequiredCount = data.actionRequiredCount;
   const [mobileOpen, setMobileOpen] = useState(false);

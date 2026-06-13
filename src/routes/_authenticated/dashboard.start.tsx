@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Building2, Check, Truck, Star, Crown, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +58,7 @@ const FEATURE_COPY: Record<string, string> = {
 function StartCompanyPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [activeState, setActiveState] = useState("wyoming");
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -113,6 +114,18 @@ function StartCompanyPage() {
     document.getElementById("intake-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  // Map service feature keys → gateway keys (used to populate intake.addons)
+  const FEATURE_TO_GW: Record<string, string> = {
+    stripe_2: "stripe",
+    paypal_business: "paypal",
+    wise_business: "wise",
+    mercury_account: "mercury",
+    payoneer_business: "payoneer",
+    shopify_payment: "shopify",
+  };
+  // all_ultimate includes all Ultimate gateways
+  const ULTIMATE_GW = ["stripe", "paypal", "wise", "payoneer", "shopify"];
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
@@ -125,6 +138,22 @@ function StartCompanyPage() {
       return;
     }
     setSubmitting(true);
+
+    // Derive included gateways from the chosen service's features
+    const selectedService = allServices.find((s) => s.id === form.serviceId);
+    const features: { k: string }[] = selectedService?.features ?? [];
+    const hasAllUltimate = features.some((f) => f.k === "all_ultimate");
+    const directGateways = features.map((f) => FEATURE_TO_GW[f.k]).filter(Boolean);
+    const includedGateways = hasAllUltimate
+      ? [...new Set([...ULTIMATE_GW, ...directGateways])]
+      : directGateways;
+
+    const addons = {
+      us_phone: features.some((f) => f.k === "us_phone"),
+      website: features.some((f) => f.k === "store_setup"),
+      gateways: includedGateways as string[],
+    };
+
     const { error } = await supabase.from("orders").insert({
       client_id: user.id,
       service_id: form.serviceId,
@@ -144,6 +173,7 @@ function StartCompanyPage() {
         partner: { has: form.hasPartner === "yes", info: form.partnerInfo },
         signature: form.signature,
         signed_at: new Date().toISOString(),
+        addons,
       },
     });
     setSubmitting(false);
@@ -151,6 +181,8 @@ function StartCompanyPage() {
       toast.error(error.message || "Could not submit. Please try again.");
       return;
     }
+    // Flush all cached queries so the dashboard sees the new order immediately
+    await qc.invalidateQueries();
     toast.success("Order submitted — your workspace is being created.");
     navigate({ to: "/dashboard" });
   }

@@ -3,7 +3,7 @@ import {
   Headphones, MessageSquare, Mail, Calendar, Bell, AlertCircle, Check, ChevronRight, HelpCircle,
 } from "lucide-react";
 import { StatusPill, Card } from "@/components/dashboard/shared";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useDashboardDataCtx } from "@/hooks/DashboardDataContext";
 
 export const Route = createFileRoute("/_authenticated/dashboard/support")({
   component: SupportPage,
@@ -17,7 +17,7 @@ const QUICK_HELP = [
 ];
 
 function SupportPage() {
-  const data = useDashboardData();
+  const data = useDashboardDataCtx();
   return (
     <div className="mx-auto max-w-7xl">
       {/* Header */}

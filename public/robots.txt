@@ -1,9 +1,28 @@
 User-agent: *
 Allow: /
 Disallow: /dashboard
+Disallow: /admin
 Disallow: /login
 Disallow: /signup
+Disallow: /verify-email
 Disallow: /forgot-password
 Disallow: /reset-password
+Disallow: /start
 
-Sitemap: https://launchbridgepro.lovable.app/sitemap.xml
+# AI crawlers — allow indexing for GEO
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://launchbridgepro.com/sitemap.xml

@@ -7,6 +7,7 @@ import { Reveal } from "@/components/ui/Reveal";
 import { SectionTag } from "@/components/ui/SectionTag";
 import { Flag3D } from "@/components/ui/Flag3D";
 import { CtaBanner } from "@/components/sections/CtaBanner";
+import { BookCallBanner } from "@/components/sections/BookCallBanner";
 import { useLang } from "@/i18n/LanguageProvider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
@@ -331,6 +332,7 @@ function AcademyPage() {
         </div>
       </div>
 
+      <BookCallBanner />
       <CtaBanner />
     </>
   );

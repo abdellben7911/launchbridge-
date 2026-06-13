@@ -19,7 +19,7 @@ export type BlogPostFull = BlogPostListItem & {
   body_en: string; body_fr: string; body_ar: string;
   seo_title: string | null;
   seo_description: string | null;
-  author: { full_name: string | null; avatar_url: string | null } | null;
+  author?: { full_name: string | null; avatar_url: string | null } | null;
 };
 
 const PUBLIC_FIELDS =
@@ -27,7 +27,7 @@ const PUBLIC_FIELDS =
   "category:blog_categories(slug, name_en, name_fr, name_ar)";
 
 const FULL_FIELDS = PUBLIC_FIELDS +
-  ", body_en, body_fr, body_ar, seo_title, seo_description, author:profiles!blog_posts_author_id_fkey(full_name, avatar_url)";
+  ", body_en, body_fr, body_ar, seo_title, seo_description";
 
 /** Public — list published posts. Uses supabaseAdmin to safely project published columns from SSR. */
 export const listPublishedPosts = createServerFn({ method: "GET" })

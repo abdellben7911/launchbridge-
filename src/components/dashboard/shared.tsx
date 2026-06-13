@@ -1,12 +1,12 @@
 import { cn } from "@/lib/utils";
 import { useLang } from "@/i18n/LanguageProvider";
 const GATEWAY_LOGOS: Record<string, string> = {
-  stripe: "https://cdn.simpleicons.org/stripe/635BFF",
-  shopify: "https://cdn.simpleicons.org/shopify/96BF48",
-  wise: "https://cdn.simpleicons.org/wise/9FE870",
-  payoneer: "https://cdn.simpleicons.org/payoneer/FF4800",
-  paypal: "https://cdn.simpleicons.org/paypal/003087",
-  mercury: "https://cdn.simpleicons.org/mercury/000000",
+  stripe: "/logos/stripe.svg",
+  shopify: "/logos/shopify.svg",
+  wise: "/logos/wise.svg",
+  payoneer: "/logos/payoneer.svg",
+  paypal: "/logos/paypal.svg",
+  mercury: "/logos/mercury.svg",
 };
 
 export type GatewayStatus =

@@ -4,4 +4,11 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
+  "vars": {
+    "SUPABASE_URL": "https://zgzhsegbuxvwiegbimfh.supabase.co",
+    "VITE_SUPABASE_URL": "https://zgzhsegbuxvwiegbimfh.supabase.co",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpnemhzZWdidXh2d2llZ2JpbWZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNDc5NjIsImV4cCI6MjA5NjgyMzk2Mn0.7vNuLxwW3RxqOkG14Xe8na8SgPfe3SxGaKbdUYVh9bM",
+    "SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpnemhzZWdidXh2d2llZ2JpbWZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNDc5NjIsImV4cCI6MjA5NjgyMzk2Mn0.7vNuLxwW3RxqOkG14Xe8na8SgPfe3SxGaKbdUYVh9bM",
+    "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpnemhzZWdidXh2d2llZ2JpbWZoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTI0Nzk2MiwiZXhwIjoyMDk2ODIzOTYyfQ.l4wMWSUPQDftBJmf0nDhhTY2wDN0gNJ6j3YqEyCmvvI"
+  }
 }

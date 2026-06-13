@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getPublishedPost, type BlogPostFull } from "@/lib/blog.functions";
 import { useLang } from "@/i18n/LanguageProvider";
 import { ChevronRight, Clock, Calendar } from "lucide-react";
+import { BookCallBanner } from "@/components/sections/BookCallBanner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ShareBar } from "@/components/blog/ShareBar";
@@ -118,6 +119,9 @@ function PostPage() {
         </div>
       )}
 
+      <BookCallBanner />
+
+
       <RelatedPosts postId={post.id} categoryId={post.category_id} />
 
       <div className="mt-12 border-t border-border pt-8 flex flex-wrap items-center justify-between gap-4">
@@ -134,13 +138,61 @@ function PostPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify({
           "@context": "https://schema.org",
-          "@type": "Article",
-          headline: title,
-          datePublished: post.published_at,
-          dateModified: post.published_at,
-          author: post.author?.full_name ? { "@type": "Person", name: post.author.full_name } : undefined,
-          image: post.cover_url || undefined,
-          description: post.seo_description || post.excerpt_en,
+          "@graph": [
+            {
+              "@type": "BlogPosting",
+              "@id": `https://launchbridgepro.com/blog/${post.slug}#article`,
+              headline: title,
+              name: title,
+              description: post.seo_description || post.excerpt_en,
+              datePublished: post.published_at,
+              dateModified: post.published_at,
+              url: `https://launchbridgepro.com/blog/${post.slug}`,
+              inLanguage: "en",
+              author: {
+                "@type": "Organization",
+                "@id": "https://launchbridgepro.com/#organization",
+                name: "LaunchBridge",
+              },
+              publisher: {
+                "@type": "Organization",
+                "@id": "https://launchbridgepro.com/#organization",
+                name: "LaunchBridge",
+                logo: {
+                  "@type": "ImageObject",
+                  url: "https://launchbridgepro.com/favicon.svg",
+                },
+              },
+              ...(post.cover_url ? {
+                image: {
+                  "@type": "ImageObject",
+                  url: post.cover_url,
+                  width: 1200,
+                  height: 750,
+                },
+              } : {}),
+              ...(post.tags?.length ? { keywords: post.tags.join(", ") } : {}),
+              timeRequired: `PT${post.reading_minutes}M`,
+              mainEntityOfPage: {
+                "@type": "WebPage",
+                "@id": `https://launchbridgepro.com/blog/${post.slug}`,
+              },
+              isPartOf: {
+                "@type": "Blog",
+                "@id": "https://launchbridgepro.com/blog",
+                name: "LaunchBridge Blog",
+                publisher: { "@id": "https://launchbridgepro.com/#organization" },
+              },
+            },
+            {
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                { "@type": "ListItem", position: 1, name: "Home", item: "https://launchbridgepro.com" },
+                { "@type": "ListItem", position: 2, name: "Blog", item: "https://launchbridgepro.com/blog" },
+                { "@type": "ListItem", position: 3, name: title, item: `https://launchbridgepro.com/blog/${post.slug}` },
+              ],
+            },
+          ],
         })}}
       />
     </article>

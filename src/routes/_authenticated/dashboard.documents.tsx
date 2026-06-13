@@ -1,18 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
-import { FileText, Upload, X, ExternalLink, Loader2, RefreshCw } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useDashboardData } from "@/hooks/useDashboardData";
-import { StatusPill, type GatewayStatus } from "@/components/dashboard/shared";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import {
-  uploadOrderDocument,
-  getSignedDocUrl,
-  DOC_TYPES,
-  DOC_TYPE_LABEL,
-  ACCEPT_MIME,
-  MAX_FILE_BYTES,
-  type DocType,
-} from "@/lib/documents";
+  FileText, Download, Lock, Loader2, ExternalLink,
+  ShieldCheck, Headphones, Sparkles,
+} from "lucide-react";
+import { useDashboardDataCtx } from "@/hooks/DashboardDataContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/dashboard/documents")({
   component: DocumentsPage,
@@ -28,29 +21,46 @@ type DocRow = {
   created_at: string;
 };
 
-const REQUIRED_SLOTS: DocType[] = ["id_front", "id_back", "proof_address"];
+const TYPE_LABEL: Record<string, string> = {
+  formation:          "Articles of Organization",
+  ein_letter:         "EIN / CP-575 Letter",
+  operating_agreement:"Operating Agreement",
+  id_front:           "ID — Front",
+  id_back:            "ID — Back",
+  proof_address:      "Proof of Address",
+  passport:           "Passport",
+  other:              "Additional Document",
+};
 
-function statusToPill(status: string): { s: GatewayStatus; label: string } {
-  switch (status) {
-    case "approved":
-      return { s: "completed", label: "Approved" };
-    case "rejected":
-      return { s: "action_required", label: "Needs replacement" };
-    case "pending":
-    default:
-      return { s: "pending_review", label: "Pending review" };
-  }
-}
+const TYPE_ICON: Record<string, string> = {
+  formation:          "🏛️",
+  ein_letter:         "🔢",
+  operating_agreement:"📋",
+  other:              "📄",
+};
+
+// Documents sent FROM LaunchBridge that the client can download
+const CLIENT_DOWNLOAD_TYPES = [
+  "formation",
+  "ein_letter",
+  "operating_agreement",
+  "other",
+];
+
+const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> = {
+  approved:  { bg: "bg-emerald-100 dark:bg-emerald-500/20", text: "text-emerald-700 dark:text-emerald-300", label: "Ready" },
+  pending:   { bg: "bg-amber-100 dark:bg-amber-500/20",    text: "text-amber-700 dark:text-amber-300",    label: "In preparation" },
+  rejected:  { bg: "bg-rose-100 dark:bg-rose-500/20",      text: "text-rose-700 dark:text-rose-300",      label: "Needs review" },
+};
 
 function DocumentsPage() {
-  const { user } = useAuth();
-  const { order, documents, loading } = useDashboardData() as {
+  const { order, documents, loading } = useDashboardDataCtx() as {
     order: { id: string } | null;
     documents: DocRow[];
     loading: boolean;
   };
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -62,118 +72,120 @@ function DocumentsPage() {
 
   if (!order) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-soft">
-        <h1 className="text-2xl font-extrabold">Documents</h1>
-        <p className="mt-2 text-sm text-text-2">You don't have an active order yet. Start one from Services to upload documents.</p>
+      <div className="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-10 text-center shadow-soft">
+        <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+          <FileText className="h-7 w-7" />
+        </div>
+        <h1 className="text-2xl font-extrabold text-foreground">Documents</h1>
+        <p className="mt-2 text-sm text-text-2">
+          Your company documents will appear here once your formation order is placed and processed.
+        </p>
+        <Link
+          to="/dashboard/start"
+          className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90"
+        >
+          <Sparkles className="h-4 w-4" /> Start your U.S. company
+        </Link>
       </div>
     );
   }
 
-  const orderId = order.id;
-  const userId = user!.id;
+  // Only show docs uploaded BY LaunchBridge for this client
+  const launchbridgeDocs = documents.filter(
+    (d) => d.direction !== "client_upload" && CLIENT_DOWNLOAD_TYPES.includes(d.type),
+  );
 
-  const docsByType = documents.reduce<Record<string, DocRow[]>>((acc, d) => {
-    (acc[d.type] ??= []).push(d);
-    return acc;
-  }, {});
+  // Expected documents that aren't ready yet (for the checklist)
+  const readyTypes = new Set(launchbridgeDocs.filter((d) => d.status === "approved").map((d) => d.type));
 
-  const handleUpload = async (type: DocType | string, file: File) => {
-    if (file.size > MAX_FILE_BYTES) {
-      setError(`${file.name} is larger than 10 MB.`);
-      return;
-    }
-    setError(null);
-    setBusy(`${type}-${file.name}`);
-    try {
-      await uploadOrderDocument({ orderId, userId, type, file });
-    } catch (e) {
-      setError((e as Error).message ?? "Upload failed");
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const openSigned = async (doc: DocRow) => {
+  const handleDownload = async (doc: DocRow) => {
     if (!doc.file_path) return;
+    setDownloading(doc.id);
     try {
-      const url = await getSignedDocUrl(doc.file_path);
-      window.open(url, "_blank", "noopener");
-    } catch (e) {
-      setError((e as Error).message ?? "Could not open file");
+      const { data } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(doc.file_path, 180);
+      if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
+    } finally {
+      setDownloading(null);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-extrabold">Documents</h1>
-        <p className="mt-1 text-sm text-text-2">Upload your KYC documents. Our team reviews each file — you'll see live status updates here.</p>
-      </header>
+    <div className="mx-auto max-w-4xl space-y-8">
+      {/* Header */}
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-wider text-text-3"># Company files</p>
+        <h1 className="mt-1 text-3xl font-black tracking-tight text-foreground">Documents</h1>
+        <p className="mt-2 text-sm text-text-2">
+          All official documents prepared by LaunchBridge for your company. Download anytime.
+        </p>
+      </div>
 
-      {error && (
-        <div className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
-          {error}
+      {/* Document checklist */}
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-text-3">Your company documents</h2>
         </div>
-      )}
 
-      {/* Required checklist */}
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-soft">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-text-3">Required documents</h2>
-        <div className="mt-4 grid gap-3">
-          {REQUIRED_SLOTS.map((slot) => {
-            const items = docsByType[slot] ?? [];
-            const latest = items[0];
-            const pill = latest
-              ? statusToPill(latest.status)
-              : { s: "action_required" as GatewayStatus, label: "Missing" };
-            return (
-              <SlotRow
-                key={slot}
-                label={DOC_TYPE_LABEL[slot] ?? slot}
-                pill={pill}
-                latest={latest}
-                busy={busy?.startsWith(`${slot}-`) ?? false}
-                onPick={(f) => handleUpload(slot, f)}
-                onOpen={openSigned}
-              />
-            );
-          })}
-        </div>
-      </section>
-
-      {/* All documents */}
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-soft">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-text-3">All uploads</h2>
-          <span className="text-[11px] text-text-3">{documents.length} file{documents.length === 1 ? "" : "s"}</span>
-        </div>
-        {documents.length === 0 ? (
-          <p className="mt-4 text-sm text-text-2">No documents uploaded yet.</p>
+        {launchbridgeDocs.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+            <p className="text-sm font-semibold text-foreground">Documents are being prepared</p>
+            <p className="max-w-sm text-xs text-text-3">
+              Our team is working on your formation documents. You'll receive a notification once they're ready to download.
+            </p>
+          </div>
         ) : (
-          <ul className="mt-4 grid gap-2">
-            {documents.map((d) => {
-              const pill = statusToPill(d.status);
+          <ul className="divide-y divide-border">
+            {launchbridgeDocs.map((doc) => {
+              const style = STATUS_STYLE[doc.status] ?? STATUS_STYLE.pending;
+              const isReady = doc.status === "approved" && doc.file_path;
+              const isLoading = downloading === doc.id;
+
               return (
-                <li key={d.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-2 px-3 py-2 text-sm">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <FileText className="h-4 w-4 shrink-0 text-primary" />
+                <li
+                  key={doc.id}
+                  className="flex items-center justify-between gap-4 px-6 py-4 transition-colors hover:bg-accent/30"
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-lg">
+                      {TYPE_ICON[doc.type] ?? "📄"}
+                    </div>
                     <div className="min-w-0">
-                      <div className="truncate font-semibold">{d.name}</div>
-                      <div className="text-[11px] text-text-3">
-                        {DOC_TYPE_LABEL[d.type] ?? d.type} · {new Date(d.created_at).toLocaleString()}
-                      </div>
+                      <p className="truncate font-semibold text-foreground">
+                        {TYPE_LABEL[doc.type] ?? doc.name}
+                      </p>
+                      <p className="text-xs text-text-3">
+                        {doc.name} · {new Date(doc.created_at).toLocaleDateString("en-US", {
+                          month: "short", day: "numeric", year: "numeric",
+                        })}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <StatusPill status={pill.s} label={pill.label} />
-                    {d.file_path && (
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${style.bg} ${style.text}`}>
+                      {style.label}
+                    </span>
+
+                    {isReady ? (
                       <button
-                        type="button"
-                        onClick={() => openSigned(d)}
-                        className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-2 hover:border-primary hover:text-primary"
+                        onClick={() => handleDownload(doc)}
+                        disabled={isLoading}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60 transition"
                       >
-                        <ExternalLink className="h-3 w-3" /> View
+                        {isLoading
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <Download className="h-3.5 w-3.5" />}
+                        Download
                       </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-xs font-semibold text-text-3">
+                        <Lock className="h-3 w-3" /> Not ready
+                      </span>
                     )}
                   </div>
                 </li>
@@ -181,128 +193,52 @@ function DocumentsPage() {
             })}
           </ul>
         )}
-      </section>
+      </div>
 
-      {/* Add more */}
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-soft">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-text-3">Upload additional document</h2>
-        <p className="mt-1 text-xs text-text-3">Business proof, contracts, anything else useful (max 10 MB, PDF or image).</p>
-        <div className="mt-3">
-          <PickButton
-            busy={busy === "extra"}
-            onPick={async (f) => {
-              setBusy("extra");
-              try { await handleUpload("other", f); } finally { setBusy(null); }
-            }}
-          />
+      {/* Coming soon checklist — shows what to expect */}
+      {launchbridgeDocs.length < CLIENT_DOWNLOAD_TYPES.length - 1 && (
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-text-3 mb-4">Coming with your formation</h2>
+          <ul className="space-y-2.5">
+            {CLIENT_DOWNLOAD_TYPES.filter((t) => t !== "other").map((type) => {
+              const isReady = readyTypes.has(type);
+              return (
+                <li key={type} className="flex items-center gap-3 text-sm">
+                  <div className={`grid h-5 w-5 shrink-0 place-items-center rounded-full ${
+                    isReady ? "bg-emerald-500" : "border-2 border-border"
+                  }`}>
+                    {isReady && <span className="text-[10px] text-white font-bold">✓</span>}
+                  </div>
+                  <span className={isReady ? "font-semibold text-foreground" : "text-text-2"}>
+                    {TYPE_LABEL[type]}
+                  </span>
+                  {isReady && (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                      Ready
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
-      </section>
-    </div>
-  );
-}
+      )}
 
-function SlotRow({
-  label,
-  pill,
-  latest,
-  busy,
-  onPick,
-  onOpen,
-}: {
-  label: string;
-  pill: { s: GatewayStatus; label: string };
-  latest?: DocRow;
-  busy: boolean;
-  onPick: (f: File) => void;
-  onOpen: (d: DocRow) => void;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-2 px-3 py-2.5 text-sm">
-      <div className="min-w-0">
-        <div className="truncate font-semibold">{label}</div>
-        {latest ? (
-          <div className="truncate text-[11px] text-text-3">{latest.name} · {new Date(latest.created_at).toLocaleDateString()}</div>
-        ) : (
-          <div className="text-[11px] text-text-3">No file uploaded</div>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <StatusPill status={pill.s} label={pill.label} />
-        {latest?.file_path && (
-          <button
-            type="button"
-            onClick={() => onOpen(latest)}
-            className="rounded-full border border-border p-1.5 text-text-2 hover:border-primary hover:text-primary"
-            title="View"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => ref.current?.click()}
-          disabled={busy}
-          className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+      {/* Footer help */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card px-6 py-4 text-sm shadow-soft">
+        <div className="inline-flex items-center gap-2 text-text-2">
+          <ShieldCheck className="h-4 w-4 text-emerald-500" />
+          All documents are securely stored and encrypted.
+        </div>
+        <Link
+          to="/dashboard/support"
+          className="inline-flex items-center gap-1.5 font-semibold text-primary hover:underline"
         >
-          {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : latest ? <RefreshCw className="h-3 w-3" /> : <Upload className="h-3 w-3" />}
-          {latest ? "Replace" : "Upload"}
-        </button>
-        <input
-          ref={ref}
-          type="file"
-          accept={ACCEPT_MIME}
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) onPick(f);
-            if (ref.current) ref.current.value = "";
-          }}
-        />
+          <Headphones className="h-4 w-4" />
+          Questions about a document? Contact support
+          <ExternalLink className="h-3 w-3" />
+        </Link>
       </div>
     </div>
   );
 }
-
-function PickButton({ busy, onPick }: { busy: boolean; onPick: (f: File) => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  const [drag, setDrag] = useState(false);
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => ref.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
-        onDragLeave={() => setDrag(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDrag(false);
-          const f = e.dataTransfer.files?.[0];
-          if (f) onPick(f);
-        }}
-        disabled={busy}
-        className={`flex w-full items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-5 text-xs font-medium transition disabled:opacity-50 ${
-          drag ? "border-primary bg-primary/5 text-primary" : "border-border text-text-2 hover:border-primary/60 hover:text-primary"
-        }`}
-      >
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Click or drop a file
-      </button>
-      <input
-        ref={ref}
-        type="file"
-        accept={ACCEPT_MIME}
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onPick(f);
-          if (ref.current) ref.current.value = "";
-        }}
-      />
-    </>
-  );
-}
-
-// Ensure DOC_TYPES is referenced so it survives tree-shaking analysis when imported elsewhere
-void DOC_TYPES;
-// Avoid unused-warning if ever stripped
-void X;

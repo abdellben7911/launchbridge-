@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
 import { COUNTRIES } from "@/lib/saas-constants";
 import { useLang } from "@/i18n/LanguageProvider";
@@ -70,7 +69,7 @@ function CinematicHero() {
         <BrandMark className="h-[34rem] w-[34rem]" />
       </div>
 
-      <div className="relative z-10 flex h-full w-full flex-col justify-end p-12 xl:p-20">
+      <div className="relative z-10 flex h-full w-full flex-col justify-center p-12 xl:p-20">
         <div className="max-w-xl animate-fade-in">
           <span className="mb-8 inline-block rounded-full border border-[#f5f0e0]/30 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-[#f5f0e0]/80">
             {t("auth.heroPill") || "Private Beta"}
@@ -168,10 +167,13 @@ function SignupPage() {
   };
 
   const handleGoogle = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/dashboard",
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/dashboard",
+      },
     });
-    if (result.error) toast.error(t("auth.signinFailed"));
+    if (error) toast.error(t("auth.signinFailed"));
   };
 
   const onCountryChange = (code: string) => {
@@ -183,15 +185,15 @@ function SignupPage() {
   return (
     <div className="min-h-screen w-full bg-[#f5f0e0] selection:bg-[#c9a84c]/30 selection:text-[#064e3b]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col overflow-hidden lg:flex-row">
-        <div className="relative flex w-full flex-col justify-center px-6 py-12 sm:px-12 md:px-16 lg:w-1/2 lg:px-20 xl:px-24">
-          <div className="absolute inset-x-6 top-8 flex items-center justify-between sm:inset-x-12 lg:inset-x-20 xl:inset-x-24">
+        <div className="relative flex w-full flex-col justify-center overflow-hidden px-6 py-12 sm:px-12 md:px-16 lg:w-1/2 lg:px-16 xl:px-20">
+          <div className="absolute inset-x-6 top-8 flex items-center justify-between sm:inset-x-12 lg:inset-x-16 xl:inset-x-20">
             <Link to="/" className="font-serif-display text-2xl font-bold tracking-tight text-[#064e3b]">
               LaunchBridge
             </Link>
             <LangSwitcher />
           </div>
 
-          <div className="mx-auto w-full max-w-md py-16">
+          <div className="mx-auto w-full max-w-md py-8">
             <header className="mb-8">
               <h1 className="font-serif-display mb-3 text-4xl text-[#064e3b] lg:text-5xl">
                 {t("auth.signup.title")}
@@ -238,7 +240,7 @@ function SignupPage() {
               <div className="space-y-2">
                 <label className={labelCls}>{t("auth.signup.phone")}</label>
                 <div className="flex gap-2">
-                  <select value={dial} onChange={(e) => setDial(e.target.value)} className={`${fieldCls} w-32`}>
+                  <select value={dial} onChange={(e) => setDial(e.target.value)} className="w-28 shrink-0 rounded-xl border border-[#064e3b]/10 bg-white/60 px-3 py-4 text-[#064e3b] outline-none transition-all focus:border-transparent focus:bg-white focus:ring-2 focus:ring-[#c9a84c]">
                     {COUNTRIES.filter((c) => c.dial !== "+").map((c) => (
                       <option key={c.code + c.dial} value={c.dial}>{c.flag} {c.dial}</option>
                     ))}
@@ -250,7 +252,7 @@ function SignupPage() {
                     required
                     maxLength={15}
                     placeholder="612345678"
-                    className={`${fieldCls} flex-1`}
+                    className="min-w-0 flex-1 rounded-xl border border-[#064e3b]/10 bg-white/60 px-5 py-4 text-[#064e3b] outline-none transition-all placeholder:text-[#064e3b]/30 focus:border-transparent focus:bg-white focus:ring-2 focus:ring-[#c9a84c]"
                   />
                 </div>
               </div>

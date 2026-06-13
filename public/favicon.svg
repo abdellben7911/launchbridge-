@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="#0e6b55"/>
+  <!-- Pinwheel: 4 right triangles meeting at center -->
+  <polygon points="22,22 50,22 50,50" fill="#6fcf97"/>
+  <polygon points="78,22 78,50 50,50" fill="#6fcf97"/>
+  <polygon points="22,78 22,50 50,50" fill="#6fcf97"/>
+  <polygon points="78,78 50,78 50,50" fill="#6fcf97"/>
+</svg>

@@ -1,16 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRight, Lock, Phone, Globe, Headphones, FileText, ShieldCheck, ArrowRight, Building2, Sparkles } from "lucide-react";
+import { ChevronRight, Lock, Phone, Globe, Headphones, FileText, ShieldCheck, ArrowRight, Building2, Sparkles, Loader2 } from "lucide-react";
 import {
   StatusPill, ProgressBar, GatewayLogo, Card,
 } from "@/components/dashboard/shared";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useDashboardDataCtx } from "@/hooks/DashboardDataContext";
 
 export const Route = createFileRoute("/_authenticated/dashboard/")({
   component: OverviewPage,
 });
 
 function OverviewPage() {
-  const data = useDashboardData();
+  const data = useDashboardDataCtx();
+
+  // Still fetching — avoid flashing the empty state
+  if (data.loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-text-3" />
+      </div>
+    );
+  }
+
   if (!data.hasOrder) {
     return <EmptyState />;
   }
@@ -87,96 +97,133 @@ function OverviewPage() {
 
       {/* Payment Gateway Workflow */}
       <Card>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-foreground">Payment Gateway Workflow</h2>
-            <p className="mt-1 text-sm text-text-2">
-              Your primary payment flow, left to right. Tap any gateway for details.
-            </p>
-          </div>
-          <div className="flex items-center gap-4 text-xs">
-            <Link
-              to="/dashboard/gateways"
-              className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-            >
-              Open payment gateways <ArrowRight className="h-3 w-3" />
-            </Link>
-            <div className="text-text-3">
-              <span className="font-bold text-foreground">3 Live</span> · 7 in your package
-            </div>
-          </div>
-        </div>
+        {(() => {
+          // Only show gateways that are included in the package
+          const allGW = [...data.primaryGateways, ...data.bankingGateways];
+          const includedGW = allGW.filter((g) => g.status !== "not_included");
+          const total = includedGW.length;
 
-        {/* Readiness multi-segment bar */}
-        <div className="mt-6">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-3">
-            Gateway readiness
-          </div>
-          <div className="flex h-2.5 w-full overflow-hidden rounded-full">
-            <span className="h-full bg-emerald-500" style={{ width: "25%" }} />
-            <span className="h-full bg-sky-500" style={{ width: "12%" }} />
-            <span className="h-full bg-amber-500" style={{ width: "28%" }} />
-            <span className="h-full bg-violet-500" style={{ width: "20%" }} />
-            <span className="h-full bg-rose-500" style={{ width: "15%" }} />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-text-2">
-            <Legend dot="bg-emerald-500" label="Completed" count={2} />
-            <Legend dot="bg-sky-500" label="Active" count={1} />
-            <Legend dot="bg-amber-500" label="Pending" count={2} />
-            <Legend dot="bg-violet-500" label="Pending Review" count={1} />
-            <Legend dot="bg-rose-500" label="Action Required" count={1} />
-          </div>
-        </div>
+          const counts = {
+            completed: includedGW.filter((g) => g.status === "completed").length,
+            active: includedGW.filter((g) => g.status === "active").length,
+            pending: includedGW.filter((g) => g.status === "pending").length,
+            pending_review: includedGW.filter((g) => g.status === "pending_review").length,
+            action_required: includedGW.filter((g) => g.status === "action_required").length,
+          };
+          const live = counts.completed + counts.active;
+          const pct = (n: number) => (total > 0 ? `${((n / total) * 100).toFixed(1)}%` : "0%");
 
-        {/* Primary gateways row */}
-        <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {data.primaryGateways.map((g, i) => (
-            <div key={g.key} className="relative">
-              <div className="rounded-2xl border border-border bg-bg-2/40 p-4 text-center transition-all hover:-translate-y-0.5 hover:shadow-soft">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-text-3">
-                  0{i + 1}
+          return (
+            <>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-foreground">Payment Gateway Workflow</h2>
+                  <p className="mt-1 text-sm text-text-2">
+                    Your primary payment flow, left to right. Tap any gateway for details.
+                  </p>
                 </div>
-                <div className="my-3 flex justify-center">
-                  <GatewayLogo gateway={g.key} />
-                </div>
-                <div className="text-sm font-bold text-foreground">{g.name}</div>
-                <div className="mt-2 flex justify-center">
-                  <StatusPill status={g.status} />
+                <div className="flex items-center gap-4 text-xs">
+                  <Link
+                    to="/dashboard/gateways"
+                    className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                  >
+                    Open payment gateways <ArrowRight className="h-3 w-3" />
+                  </Link>
+                  {total > 0 && (
+                    <div className="text-text-3">
+                      <span className="font-bold text-foreground">{live} Live</span> · {total} in your package
+                    </div>
+                  )}
                 </div>
               </div>
-              {i < data.primaryGateways.length - 1 && (
-                <ArrowRight className="absolute -end-3 top-1/2 hidden h-4 w-4 -translate-y-1/2 text-text-3 lg:block" />
-              )}
-            </div>
-          ))}
-        </div>
 
-        {/* Banking & optional */}
-        <div className="mt-8">
-          <div className="mb-3 text-xs font-semibold text-text-2">
-            Banking & optional gateways
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {data.bankingGateways.map((g) => (
-              <div
-                key={g.key}
-                className="flex items-center gap-3 rounded-xl border border-border bg-bg-2/40 p-3"
-              >
-                <GatewayLogo
-                  gateway={g.key}
-                  size="sm"
-                  muted={g.status === "not_included"}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-xs font-bold text-foreground">{g.name}</div>
-                  <div className="mt-1">
-                    <StatusPill status={g.status} />
+              {/* Readiness bar */}
+              {total > 0 ? (
+                <div className="mt-6">
+                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-3">
+                    Gateway readiness
+                  </div>
+                  <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-border">
+                    {counts.completed > 0 && <span className="h-full bg-emerald-500 transition-all" style={{ width: pct(counts.completed) }} />}
+                    {counts.active > 0 && <span className="h-full bg-sky-500 transition-all" style={{ width: pct(counts.active) }} />}
+                    {counts.pending > 0 && <span className="h-full bg-amber-500 transition-all" style={{ width: pct(counts.pending) }} />}
+                    {counts.pending_review > 0 && <span className="h-full bg-violet-500 transition-all" style={{ width: pct(counts.pending_review) }} />}
+                    {counts.action_required > 0 && <span className="h-full bg-rose-500 transition-all" style={{ width: pct(counts.action_required) }} />}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-text-2">
+                    {counts.completed > 0 && <Legend dot="bg-emerald-500" label="Completed" count={counts.completed} />}
+                    {counts.active > 0 && <Legend dot="bg-sky-500" label="Active" count={counts.active} />}
+                    {counts.pending > 0 && <Legend dot="bg-amber-500" label="Pending" count={counts.pending} />}
+                    {counts.pending_review > 0 && <Legend dot="bg-violet-500" label="Pending Review" count={counts.pending_review} />}
+                    {counts.action_required > 0 && <Legend dot="bg-rose-500" label="Action Required" count={counts.action_required} />}
                   </div>
                 </div>
+              ) : (
+                <div className="mt-6 rounded-xl bg-bg-2/60 px-4 py-6 text-center text-sm text-text-3">
+                  No payment gateways included in your current package.
+                </div>
+              )}
+            </>
+          );
+        })()}
+
+        {/* Primary gateways — only included ones */}
+        {(() => {
+          const included = data.primaryGateways.filter((g) => g.status !== "not_included");
+          if (included.length === 0) return null;
+          return (
+            <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {included.map((g, i) => (
+                <div key={g.key} className="relative">
+                  <div className="rounded-2xl border border-border bg-bg-2/40 p-4 text-center transition-all hover:-translate-y-0.5 hover:shadow-soft">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-text-3">
+                      0{i + 1}
+                    </div>
+                    <div className="my-3 flex justify-center">
+                      <GatewayLogo gateway={g.key} />
+                    </div>
+                    <div className="text-sm font-bold text-foreground">{g.name}</div>
+                    <div className="mt-2 flex justify-center">
+                      <StatusPill status={g.status} />
+                    </div>
+                  </div>
+                  {i < included.length - 1 && (
+                    <ArrowRight className="absolute -end-3 top-1/2 hidden h-4 w-4 -translate-y-1/2 text-text-3 lg:block" />
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
+        {/* Banking & optional gateways — only included ones */}
+        {(() => {
+          const included = data.bankingGateways.filter((g) => g.status !== "not_included");
+          if (included.length === 0) return null;
+          return (
+            <div className="mt-8">
+              <div className="mb-3 text-xs font-semibold text-text-2">
+                Banking & optional gateways
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {included.map((g) => (
+                  <div
+                    key={g.key}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-bg-2/40 p-3"
+                  >
+                    <GatewayLogo gateway={g.key} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-xs font-bold text-foreground">{g.name}</div>
+                      <div className="mt-1">
+                        <StatusPill status={g.status} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-xs text-text-3">
           <div className="inline-flex items-center gap-1.5">
@@ -188,6 +235,7 @@ function OverviewPage() {
           </Link>
         </div>
       </Card>
+
     </div>
   );
 }
