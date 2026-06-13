@@ -1,28 +1,16 @@
-import { createFileRoute, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { WorkspaceProvider } from "@/hooks/useActiveWorkspace";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
-  beforeLoad: async ({ location }) => {
-    // On the server (SSR / Cloudflare Workers) there is no localStorage,
-    // so supabase.auth.getSession() always returns null — which would redirect
-    // every returning user to /login even though their session is in the browser.
-    // We skip the check server-side and let AuthLayout handle it on the client.
-    if (typeof window === "undefined") return;
-
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      throw redirect({ to: "/login", search: { redirect: location.href } });
-    }
-    if (!data.session.user.email_confirmed_at) {
-      throw redirect({
-        to: "/verify-email",
-        search: { email: data.session.user.email ?? "" },
-      });
-    }
+  beforeLoad: async () => {
+    // Auth is handled entirely client-side in AuthLayout via useAuth() + useEffect.
+    // Calling getSession() here triggers during SSR hydration — before Supabase
+    // has restored the session from localStorage — so logged-in users get bounced
+    // to /login on every browser reopen. Skip it entirely.
+    return;
   },
   component: AuthLayout,
 });
