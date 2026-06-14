@@ -22,6 +22,7 @@ type DocRow = {
     id: string;
     order_number: string | null;
     business_name: string | null;
+    client_id: string;
     profiles: { full_name: string | null; email: string } | null;
   } | null;
 };
@@ -55,7 +56,7 @@ function AdminDocuments() {
       let q = supabase
         .from("documents")
         .select(`id, name, type, direction, status, file_path, created_at, order_id,
-          orders:order_id (id, order_number, business_name,
+          orders:order_id (id, order_number, business_name, client_id,
             profiles:client_id (full_name, email))`)
         .order("created_at", { ascending: false })
         .limit(300);
@@ -215,6 +216,16 @@ function AdminDocuments() {
                               <X className="h-3.5 w-3.5" />
                             </button>
                           </>
+                        )}
+                        {order?.client_id && (
+                          <Link
+                            to="/admin/clients/$clientId"
+                            params={{ clientId: order.client_id }}
+                            className="grid h-7 w-7 place-items-center rounded-lg border border-border text-text-2 hover:bg-accent transition"
+                            title="Manage client"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Link>
                         )}
                       </div>
                     </td>

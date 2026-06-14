@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Phone, Mail, MessageCircle, ExternalLink, Users } from "lucide-react";
+import { Search, Phone, Mail, MessageCircle, ExternalLink, Users, Settings2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/clients")({
   component: AdminClients,
@@ -170,12 +170,21 @@ function AdminClients() {
                       {new Date(client.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </td>
                     <td className="px-4 py-3">
-                      {latestOrder && (
-                        <Link to="/admin/orders/$orderId" params={{ orderId: latestOrder.id }}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                          View <ExternalLink className="h-3 w-3" />
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to="/admin/clients/$clientId"
+                          params={{ clientId: client.id }}
+                          className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90"
+                        >
+                          <Settings2 className="h-3 w-3" /> Manage
                         </Link>
-                      )}
+                        {latestOrder && (
+                          <Link to="/admin/orders/$orderId" params={{ orderId: latestOrder.id }}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-text-2 hover:text-primary">
+                            Order <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
