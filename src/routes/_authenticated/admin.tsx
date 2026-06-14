@@ -1,35 +1,53 @@
-import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useLang } from "@/i18n/LanguageProvider";
 import { useTheme } from "@/theme/ThemeProvider";
 import {
   LayoutDashboard, Users, ClipboardList, FileCheck, MessageSquare,
-  Newspaper, LogOut, Package, Settings as SettingsIcon, Sun, Moon, Menu, X,
+  Newspaper, LogOut, Package, Settings as SettingsIcon, Sun, Moon, Menu, X, Loader2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
-  beforeLoad: async () => {
-    const { data: s } = await supabase.auth.getSession();
-    if (!s.session) throw redirect({ to: "/login" });
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", s.session.user.id);
-    const isStaff = (roles ?? []).some((r: { role: string }) => r.role === "admin" || r.role === "support");
-    if (!isStaff) throw redirect({ to: "/dashboard" });
-  },
+  // Role check runs client-side in AdminLayout — same SSR issue as _authenticated:
+  // beforeLoad on the server has no localStorage, getSession() returns null → wrong redirect.
   component: AdminLayout,
 });
 
 function AdminLayout() {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, session, loading } = useAuth();
   const navigate = useNavigate();
   const { lang, setLang, t } = useLang();
   const { theme, toggle } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [roleChecked, setRoleChecked] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Client-side role guard — runs after auth is resolved
+  useEffect(() => {
+    if (loading) return;
+    if (!session) { navigate({ to: "/login" }); return; }
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .then(({ data }) => {
+        const ok = (data ?? []).some((r: { role: string }) => r.role === "admin" || r.role === "support");
+        if (!ok) { navigate({ to: "/dashboard" }); return; }
+        setIsAdmin(true);
+        setRoleChecked(true);
+      });
+  }, [loading, session, navigate]);
+
+  if (loading || !roleChecked || !isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const nav = [
     { to: "/admin", labelKey: "admin.nav.dashboard", icon: LayoutDashboard, exact: true },
